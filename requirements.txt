@@ -1,0 +1,7 @@
+ollama
+chromadb
+sentence-transformers
+tkinter-tooltip
+requests
+pathlib
+python-dotenv
