@@ -35,3 +35,4 @@ Thumbs.db
 .env
 *.key
 *.pem
+streamlit_app/.streamlit/secrets.toml
