@@ -86,7 +86,13 @@ SYSTEM_PROMPTS = {
 # ── Session state init ────────────────────────────────────────────────────────
 if "messages"    not in st.session_state: st.session_state.messages    = []
 if "groq_client" not in st.session_state: st.session_state.groq_client = None
-if "api_key"     not in st.session_state: st.session_state.api_key     = ""
+if "api_key"     not in st.session_state:
+    # Auto-load from Streamlit secrets if available
+    try:
+        st.session_state.api_key = st.secrets["GROQ_API_KEY"]
+        st.session_state.groq_client = Groq(api_key=st.session_state.api_key)
+    except:
+        st.session_state.api_key = ""
 
 # ── Helper: clean LLM output ──────────────────────────────────────────────────
 def clean_response(text: str) -> str:
