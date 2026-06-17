@@ -10,7 +10,7 @@ from groq import Groq
 
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="🤖 AI Assistant",
+    page_title="🤖 NILESH AI Assistant",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -136,7 +136,7 @@ def get_response(messages: list, model: str, system_prompt: str) -> str:
 #  SIDEBAR                                                                     #
 # ════════════════════════════════════════════════════════════════════════════ #
 with st.sidebar:
-    st.title("🤖 AI Assistant")
+    st.title("🤖 NILESH AI Assistant")
     st.markdown("---")
 
     # API Key — only show if not already loaded from secrets
@@ -225,7 +225,7 @@ with st.sidebar:
 # ════════════════════════════════════════════════════════════════════════════ #
 #  MAIN CHAT AREA                                                              #
 # ════════════════════════════════════════════════════════════════════════════ #
-st.title("🤖 Local AI Assistant")
+st.title("🤖 NILESH AI Assistant")
 st.caption(f"Model: `{selected_model}` | Mode: **{selected_mode}**")
 st.markdown("---")
 
