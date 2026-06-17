@@ -1,637 +1,584 @@
 """
-NILESH AI — Coding Assistant
-Professional AI-powered coding assistant built by NILESH PURI GOSWAMI
+NILESH AI — Professional Coding Assistant
+Built by NILESH PURI GOSWAMI
 """
 import streamlit as st
 import re, base64
 from groq import Groq
 
-# ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="NILESH AI — Coding Assistant",
-    page_icon="👨‍💻",
+    page_title="NILESH AI",
+    page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap');
 
-* { font-family: 'Inter', sans-serif; box-sizing: border-box; }
-.stApp { background: #0d1117; color: #e6edf3; }
-section[data-testid="stSidebar"] {
-    background: #161b22 !important;
-    border-right: 1px solid #21262d;
-}
-#MainMenu, footer, header { visibility: hidden; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, .stApp { font-family: 'Inter', sans-serif !important; background: #1e1e1e !important; color: #d4d4d4 !important; }
 
-/* Tabs */
-.stTabs [data-baseweb="tab-list"] {
-    background: #161b22;
-    border-bottom: 1px solid #21262d;
-    gap: 0; padding: 0;
-}
-.stTabs [data-baseweb="tab"] {
-    background: transparent;
-    color: #7d8590;
-    border-radius: 0;
-    font-size: 14px;
-    font-weight: 500;
-    padding: 12px 20px;
-    border-bottom: 2px solid transparent;
-}
-.stTabs [aria-selected="true"] {
-    background: transparent !important;
-    color: #e6edf3 !important;
-    border-bottom: 2px solid #f78166 !important;
-}
+/* Hide Streamlit chrome */
+#MainMenu, footer, header, [data-testid="stToolbar"], .stDeployButton { display: none !important; }
+[data-testid="stDecoration"] { display: none !important; }
+
+/* Sidebar */
+section[data-testid="stSidebar"] { background: #252526 !important; border-right: 1px solid #3c3c3c; min-width: 240px !important; max-width: 280px !important; }
+section[data-testid="stSidebar"] > div { padding: 0 !important; }
+section[data-testid="stSidebar"] * { color: #cccccc !important; }
+
+/* Tabs — VSCode style */
+.stTabs [data-baseweb="tab-list"] { background: #2d2d2d; border-bottom: 1px solid #3c3c3c; gap: 0; padding: 0; margin: 0; }
+.stTabs [data-baseweb="tab"] { background: #2d2d2d; color: #969696; border: none; border-radius: 0; font-size: 13px; font-weight: 400; padding: 10px 20px; border-right: 1px solid #3c3c3c; transition: all 0.15s; min-width: 120px; }
+.stTabs [data-baseweb="tab"]:hover { background: #1e1e1e; color: #cccccc; }
+.stTabs [aria-selected="true"] { background: #1e1e1e !important; color: #ffffff !important; border-bottom: 2px solid #007acc !important; font-weight: 500 !important; }
+.stTabs [data-baseweb="tab-panel"] { background: #1e1e1e; padding: 0; }
 
 /* Buttons */
-.stButton > button {
-    background: #238636 !important;
-    color: #ffffff !important;
-    border: 1px solid #2ea043 !important;
-    border-radius: 6px !important;
-    font-weight: 500 !important;
-    font-size: 14px !important;
-    padding: 6px 16px !important;
-    transition: all 0.2s !important;
-}
-.stButton > button:hover {
-    background: #2ea043 !important;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(46,160,67,0.3) !important;
-}
+.stButton > button { background: #0e639c !important; color: #ffffff !important; border: none !important; border-radius: 2px !important; font-size: 13px !important; font-weight: 400 !important; padding: 6px 14px !important; font-family: 'Inter', sans-serif !important; letter-spacing: 0.3px; transition: background 0.15s !important; }
+.stButton > button:hover { background: #1177bb !important; }
+.stButton > button:active { background: #0d5c8f !important; }
 
-/* Text areas */
-.stTextArea textarea {
-    background: #0d1117 !important;
-    color: #e6edf3 !important;
-    border: 1px solid #30363d !important;
-    border-radius: 6px !important;
-    font-family: 'JetBrains Mono', monospace !important;
-    font-size: 13px !important;
-    line-height: 1.6 !important;
-}
-.stTextArea textarea:focus {
-    border-color: #388bfd !important;
-    box-shadow: 0 0 0 3px rgba(56,139,253,0.15) !important;
-}
+/* Secondary button style */
+div[data-testid="column"] .stButton > button { background: #3c3c3c !important; color: #cccccc !important; border: 1px solid #555 !important; }
+div[data-testid="column"] .stButton > button:hover { background: #4c4c4c !important; }
 
-/* Text inputs */
-.stTextInput input {
-    background: #0d1117 !important;
-    color: #e6edf3 !important;
-    border: 1px solid #30363d !important;
-    border-radius: 6px !important;
-    font-size: 14px !important;
-}
-.stTextInput input:focus {
-    border-color: #388bfd !important;
-    box-shadow: 0 0 0 3px rgba(56,139,253,0.15) !important;
-}
+/* Inputs */
+.stTextArea textarea { background: #1e1e1e !important; color: #d4d4d4 !important; border: 1px solid #3c3c3c !important; border-radius: 2px !important; font-family: 'Fira Code', monospace !important; font-size: 13px !important; line-height: 1.6 !important; resize: vertical; }
+.stTextArea textarea:focus { border-color: #007acc !important; outline: none !important; box-shadow: none !important; }
+.stTextInput > div > div > input { background: #3c3c3c !important; color: #cccccc !important; border: 1px solid #555 !important; border-radius: 2px !important; font-size: 13px !important; padding: 6px 10px !important; }
+.stTextInput > div > div > input:focus { border-color: #007acc !important; box-shadow: none !important; }
+.stTextInput > div > div > input::placeholder { color: #666 !important; }
 
 /* Selectbox */
-.stSelectbox > div > div {
-    background: #161b22 !important;
-    color: #e6edf3 !important;
-    border: 1px solid #30363d !important;
-    border-radius: 6px !important;
-}
+.stSelectbox > div > div { background: #3c3c3c !important; border: 1px solid #555 !important; border-radius: 2px !important; color: #cccccc !important; font-size: 13px !important; }
+[data-baseweb="select"] { background: #3c3c3c !important; }
+[data-baseweb="popover"] { background: #252526 !important; border: 1px solid #3c3c3c !important; }
 
 /* Radio */
-.stRadio label { color: #e6edf3 !important; font-size: 14px !important; }
+.stRadio > div > label { color: #cccccc !important; font-size: 13px !important; }
+.stRadio [data-baseweb="radio"] { background: #007acc; }
 
-/* Chat bubbles */
-.user-bubble {
-    background: #1c2128;
-    border: 1px solid #30363d;
-    border-radius: 12px 12px 2px 12px;
-    padding: 12px 16px;
-    margin: 8px 0 8px auto;
-    max-width: 75%;
-    color: #e6edf3;
-    font-size: 14px;
-    line-height: 1.6;
-}
-.ai-row { display: flex; gap: 12px; margin: 8px 0; align-items: flex-start; }
-.ai-avatar {
-    width: 32px; height: 32px; border-radius: 6px;
-    background: linear-gradient(135deg, #388bfd, #56cfbf);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px; flex-shrink: 0; margin-top: 2px;
-}
-.ai-bubble {
-    background: #161b22;
-    border: 1px solid #21262d;
-    border-radius: 2px 12px 12px 12px;
-    padding: 12px 16px;
-    max-width: 85%;
-    color: #e6edf3;
-    font-size: 14px;
-    line-height: 1.7;
-}
+/* Chat messages */
+.msg-user-wrap { display: flex; justify-content: flex-end; padding: 8px 0; }
+.msg-user { background: #264f78; color: #d4d4d4; padding: 10px 14px; border-radius: 8px 8px 2px 8px; max-width: 72%; font-size: 13px; line-height: 1.65; }
+.msg-ai-wrap { display: flex; gap: 10px; padding: 8px 0; align-items: flex-start; }
+.msg-ai-icon { width: 28px; height: 28px; border-radius: 4px; background: #007acc; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; margin-top: 1px; color: white; font-weight: 700; }
+.msg-ai-body { background: #252526; border: 1px solid #3c3c3c; border-radius: 2px 8px 8px 8px; padding: 10px 14px; max-width: 88%; font-size: 13px; line-height: 1.7; color: #d4d4d4; }
 
-/* Code output card */
-.code-card {
-    background: #161b22;
-    border: 1px solid #21262d;
-    border-radius: 8px;
-    padding: 20px;
-}
+/* Code output panel */
+.output-panel { background: #252526; border: 1px solid #3c3c3c; border-radius: 4px; padding: 0; overflow: hidden; }
+.output-header { background: #2d2d2d; border-bottom: 1px solid #3c3c3c; padding: 8px 14px; display: flex; align-items: center; justify-content: space-between; }
+.output-title { font-size: 12px; color: #858585; font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; }
+.output-body { padding: 16px; }
 
-/* Stat badge */
-.badge {
-    display: inline-block;
-    background: #21262d;
-    border: 1px solid #30363d;
-    border-radius: 20px;
-    padding: 4px 12px;
-    font-size: 12px;
-    color: #7d8590;
-    margin: 2px;
-}
+/* Status dots */
+.status-ok { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #4ec9b0; margin-right: 6px; }
+.status-off { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #f44747; margin-right: 6px; }
 
-/* Sidebar section headers */
-.sidebar-header {
-    font-size: 11px;
-    font-weight: 600;
-    color: #7d8590;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin: 16px 0 6px;
-}
+/* Section labels */
+.section-label { font-size: 11px; font-weight: 600; color: #858585; text-transform: uppercase; letter-spacing: 0.8px; padding: 12px 16px 6px; }
 
-/* Welcome area */
-.welcome-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
-.suggestion-card {
-    background: #161b22;
-    border: 1px solid #21262d;
-    border-radius: 8px;
-    padding: 14px;
-    cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
-}
-.suggestion-card:hover { border-color: #388bfd; background: #1c2128; }
-.suggestion-title { font-size: 14px; font-weight: 500; color: #e6edf3; }
-.suggestion-sub { font-size: 12px; color: #7d8590; margin-top: 2px; }
+/* Sidebar nav item */
+.nav-item { display: flex; align-items: center; gap: 8px; padding: 7px 16px; font-size: 13px; color: #cccccc; cursor: pointer; transition: background 0.1s; }
+.nav-item:hover { background: #2a2d2e; }
+.nav-item.active { background: #094771; color: #ffffff; }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #0d1117; }
-::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #388bfd; }
-
-/* Alerts */
-div[data-testid="stAlert"] { border-radius: 6px !important; }
-
-/* Expander */
-.streamlit-expanderHeader {
-    background: #161b22 !important;
-    border: 1px solid #21262d !important;
-    border-radius: 6px !important;
-    color: #e6edf3 !important;
-}
+/* Kbd shortcut */
+.kbd { background: #3c3c3c; border: 1px solid #555; border-radius: 3px; padding: 1px 5px; font-size: 11px; font-family: 'Fira Code', monospace; color: #969696; }
 
 /* Divider */
-hr { border-color: #21262d !important; }
-.stCaption { color: #7d8590 !important; }
+hr { border: none; border-top: 1px solid #3c3c3c !important; margin: 12px 0; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #1e1e1e; }
+::-webkit-scrollbar-thumb { background: #424242; border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
+
+/* Alerts */
+.stSuccess, .stInfo, .stWarning, .stError { border-radius: 2px !important; font-size: 13px !important; }
+
+/* Expander */
+details > summary { background: #2d2d2d !important; color: #cccccc !important; border: 1px solid #3c3c3c !important; border-radius: 2px !important; font-size: 13px !important; padding: 8px 12px !important; }
+details[open] > summary { border-bottom-color: transparent !important; }
+
+/* Metric */
+[data-testid="metric-container"] { background: #252526; border: 1px solid #3c3c3c; border-radius: 2px; padding: 10px 14px; }
+[data-testid="metric-container"] label { color: #858585 !important; font-size: 11px !important; }
+[data-testid="metric-container"] [data-testid="stMetricValue"] { color: #4fc1ff !important; font-size: 22px !important; font-weight: 700 !important; }
+
+/* Caption */
+.stCaption, small { color: #666 !important; font-size: 12px !important; }
+
+/* Welcome suggestions */
+.sug-btn { background: #252526; border: 1px solid #3c3c3c; border-radius: 4px; padding: 12px 14px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.sug-btn:hover { border-color: #007acc; background: #2a2d2e; }
+.sug-title { font-size: 13px; font-weight: 500; color: #cccccc; }
+.sug-desc { font-size: 12px; color: #666; margin-top: 3px; }
+
+/* File uploader */
+[data-testid="stFileUploadDropzone"] { background: #252526 !important; border: 1px dashed #3c3c3c !important; border-radius: 4px !important; }
+[data-testid="stFileUploadDropzone"]:hover { border-color: #007acc !important; }
+
+/* Form */
+[data-testid="stForm"] { border: none !important; padding: 0 !important; background: transparent !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Constants ─────────────────────────────────────────────────────────────────
+# ── Config ────────────────────────────────────────────────────────────────────
 MODELS = {
-    "⚡ Llama 3.1 — 8B (Fastest)":  "llama-3.1-8b-instant",
-    "🧠 Llama 3.3 — 70B (Smart)":   "llama-3.3-70b-versatile",
-    "🔮 Qwen 3 — 32B":               "qwen/qwen3-32b",
-    "💎 DeepSeek R1 — 70B (Coder)":  "deepseek-r1-distill-llama-70b",
-    "🌀 Mixtral 8x7B":               "mixtral-8x7b-32768",
+    "llama-3.1-8b-instant":            "⚡ Llama 3.1 8B — Fastest",
+    "llama-3.3-70b-versatile":         "🧠 Llama 3.3 70B — Smart",
+    "qwen/qwen3-32b":                  "🔮 Qwen 3 32B — Balanced",
+    "deepseek-r1-distill-llama-70b":   "💡 DeepSeek R1 — Reasoning",
+    "mixtral-8x7b-32768":              "🌀 Mixtral 8x7B — Long context",
 }
 
-LANGUAGES = [
-    "Python","JavaScript","TypeScript","C","C++","C#","Java",
-    "Go","Rust","Kotlin","Swift","PHP","Ruby","SQL","HTML/CSS",
-    "Bash","R","MATLAB",
+LANGS = [
+    "Python","JavaScript","TypeScript","C","C++","C#",
+    "Java","Go","Rust","Kotlin","Swift","PHP","SQL",
+    "Bash","HTML","CSS","R","Dart",
 ]
 
-DEV_NOTE = (
-    "This coding assistant was developed by NILESH PURI GOSWAMI. "
-    "If asked who built or created this app, always say: "
-    "'This app was developed by NILESH PURI GOSWAMI.'"
-)
+SYSTEM = """You are NILESH AI, a professional coding assistant built by NILESH PURI GOSWAMI.
 
-SYSTEM_CODING = f"""You are NILESH AI — an expert coding assistant.
-You help with: writing code, debugging, code review, optimization, explaining code, and all programming questions.
-Always provide clean, well-commented, production-ready code.
-When showing code, use proper markdown code blocks with language tags.
-Be concise but thorough. {DEV_NOTE}"""
+You help developers with:
+- Writing clean, production-ready code
+- Debugging errors and fixing bugs
+- Code review and optimization
+- Explaining complex concepts clearly
+- Best practices and design patterns
 
-ACTIONS = [
-    "🔍 Review & Explain",
-    "🐛 Debug & Fix Bugs",
-    "⚡ Optimize Code",
-    "📝 Add Comments & Docs",
-    "🔄 Convert Language",
-    "✅ Generate Test Cases",
-    "📚 Explain Line by Line",
-    "🔒 Security Audit",
-    "♻️  Refactor Code",
-]
+Rules:
+- Always use proper markdown code blocks with language tags
+- Be concise but complete
+- For code: add brief inline comments
+- If asked who built you: "I was built by NILESH PURI GOSWAMI"
+- Temperature is low — be precise and accurate"""
 
-SUGGESTIONS = [
-    ("🐛", "Debug this code", "Find and fix all errors"),
-    ("⚡", "Optimize my function", "Make it faster and cleaner"),
-    ("✅", "Write test cases", "for my Python code"),
-    ("📝", "Explain this code", "line by line for beginners"),
-    ("🔄", "Convert Python to JS", "Keep same functionality"),
-    ("🔒", "Security audit", "Find vulnerabilities in my code"),
-]
-
-# ── Session state ─────────────────────────────────────────────────────────────
-for k, v in {
-    "messages": [],
-    "groq_client": None,
-    "api_key": "",
-    "code_result": "",
-}.items():
+# ── Session ───────────────────────────────────────────────────────────────────
+_defaults = dict(messages=[], api_key="", groq_client=None, code_out="")
+for k, v in _defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-# Auto-load key from secrets
 if not st.session_state.api_key:
     try:
         st.session_state.api_key = st.secrets["GROQ_API_KEY"]
         st.session_state.groq_client = Groq(api_key=st.session_state.api_key)
-    except:
-        pass
+    except: pass
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-def clean(text: str) -> str:
-    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
-    return re.sub(r"\n{3,}", "\n\n", text).strip()
+def _clean(t):
+    return re.sub(r"\n{3,}", "\n\n", re.sub(r"<think>.*?</think>", "", t, flags=re.DOTALL)).strip()
 
-def ask(messages: list, model: str) -> str:
+def chat(msgs, model):
     if not st.session_state.groq_client:
-        return "❌ Please enter your Groq API key in the sidebar."
+        return "❌ Add your Groq API key in the sidebar to start."
     try:
-        full = [{"role": "system", "content": SYSTEM_CODING}] + messages
-        resp = st.session_state.groq_client.chat.completions.create(
-            model=model, messages=full, max_tokens=4096, temperature=0.3,
+        r = st.session_state.groq_client.chat.completions.create(
+            model=model,
+            messages=[{"role":"system","content":SYSTEM}]+msgs,
+            max_tokens=4096, temperature=0.2,
         )
-        return clean(resp.choices[0].message.content)
+        return _clean(r.choices[0].message.content)
     except Exception as e:
-        return f"❌ Error: {e}"
+        return f"❌ {e}"
 
-def dl_link(content: str, fname: str, label: str) -> str:
+def dl(content, fname, label):
     b64 = base64.b64encode(content.encode()).decode()
-    return (f'<a href="data:file/txt;base64,{b64}" download="{fname}" '
-            f'style="color:#388bfd;font-size:13px;text-decoration:none;">'
-            f'⬇️ {label}</a>')
-
-def render_chat():
-    for msg in st.session_state.messages:
-        if msg["role"] == "user":
-            st.markdown(
-                f'<div style="display:flex;justify-content:flex-end;">'
-                f'<div class="user-bubble">{msg["content"]}</div></div>',
-                unsafe_allow_html=True)
-        elif msg["role"] == "assistant":
-            st.markdown(
-                f'<div class="ai-row">'
-                f'<div class="ai-avatar">👨‍💻</div>'
-                f'<div class="ai-bubble">{msg["content"]}</div></div>',
-                unsafe_allow_html=True)
+    return (f'<a href="data:text/plain;base64,{b64}" download="{fname}" '
+            f'style="color:#4fc1ff;font-size:12px;text-decoration:none;'
+            f'border:1px solid #3c3c3c;border-radius:2px;padding:4px 10px;">'
+            f'⬇ {label}</a>')
 
 # ════════════════════════════════════════════════════════════════════════════ #
 #  SIDEBAR                                                                     #
 # ════════════════════════════════════════════════════════════════════════════ #
 with st.sidebar:
-    # Brand
+    # Logo
     st.markdown("""
-    <div style='padding:12px 0 20px;'>
-        <div style='display:flex;align-items:center;gap:10px;'>
-            <div style='width:36px;height:36px;border-radius:8px;
-                background:linear-gradient(135deg,#388bfd,#56cfbf);
-                display:flex;align-items:center;justify-content:center;
-                font-size:18px;flex-shrink:0;'>👨‍💻</div>
-            <div>
-                <div style='font-weight:700;font-size:15px;color:#e6edf3;'>NILESH AI</div>
-                <div style='font-size:11px;color:#7d8590;'>Coding Assistant</div>
-            </div>
-        </div>
+    <div style="padding:16px 16px 0;display:flex;align-items:center;gap:10px;">
+      <div style="width:32px;height:32px;border-radius:4px;background:#007acc;
+                  display:flex;align-items:center;justify-content:center;
+                  font-weight:800;font-size:14px;color:white;flex-shrink:0;">N</div>
+      <div>
+        <div style="font-size:14px;font-weight:600;color:#cccccc;line-height:1.2;">NILESH AI</div>
+        <div style="font-size:11px;color:#666;">Coding Assistant</div>
+      </div>
     </div>
     """, unsafe_allow_html=True)
 
-    st.divider()
+    st.markdown("<hr style='margin:12px 0;'>", unsafe_allow_html=True)
 
-    # API Key
-    st.markdown('<div class="sidebar-header">🔑 API Key</div>', unsafe_allow_html=True)
+    # API Status
+    st.markdown('<div class="section-label">Connection</div>', unsafe_allow_html=True)
     if st.session_state.api_key:
-        st.markdown(
-            '<div style="background:#0d2118;border:1px solid #2ea043;border-radius:6px;'
-            'padding:8px 12px;font-size:13px;color:#3fb950;">✅ Connected</div>',
-            unsafe_allow_html=True)
+        st.markdown('<div style="padding:0 16px 8px;font-size:13px;"><span class="status-ok"></span>Connected to Groq</div>', unsafe_allow_html=True)
     else:
-        key_in = st.text_input("", type="password", placeholder="gsk_...",
-                                label_visibility="collapsed", key="key_input")
-        if key_in:
-            st.session_state.api_key = key_in
-            st.session_state.groq_client = Groq(api_key=key_in)
+        st.markdown('<div style="padding:0 16px;">', unsafe_allow_html=True)
+        k = st.text_input("API Key", type="password", placeholder="gsk_...", label_visibility="collapsed")
+        if k:
+            st.session_state.api_key = k
+            st.session_state.groq_client = Groq(api_key=k)
             st.rerun()
-        st.markdown(
-            '<a href="https://console.groq.com" target="_blank" '
-            'style="color:#388bfd;font-size:12px;">Get free key →</a>',
-            unsafe_allow_html=True)
+        st.markdown('<a href="https://console.groq.com" target="_blank" style="color:#4fc1ff;font-size:12px;padding:0 0 8px;display:block;">Get free key →</a>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    st.divider()
+    st.markdown("<hr style='margin:4px 0;'>", unsafe_allow_html=True)
 
     # Model
-    st.markdown('<div class="sidebar-header">🤖 Model</div>', unsafe_allow_html=True)
-    model_label = st.selectbox("", list(MODELS.keys()), label_visibility="collapsed", key="model_sel")
-    selected_model = MODELS[model_label]
-    st.caption(f"`{selected_model}`")
+    st.markdown('<div class="section-label">Model</div>', unsafe_allow_html=True)
+    with st.container():
+        st.markdown('<div style="padding:0 16px 8px;">', unsafe_allow_html=True)
+        m_key = st.selectbox("", list(MODELS.keys()),
+                              format_func=lambda x: MODELS[x],
+                              label_visibility="collapsed", key="model")
+        st.markdown(f'<div style="font-size:11px;color:#666;padding:2px 0 4px;">{m_key}</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    st.divider()
+    st.markdown("<hr style='margin:4px 0;'>", unsafe_allow_html=True)
 
     # Stats
-    st.markdown('<div class="sidebar-header">📊 Session Stats</div>', unsafe_allow_html=True)
-    msgs = len([m for m in st.session_state.messages if m["role"] == "user"])
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown(f"""
-        <div style='background:#21262d;border:1px solid #30363d;border-radius:6px;
-                    padding:10px;text-align:center;'>
-            <div style='font-size:22px;font-weight:700;color:#388bfd;'>{msgs}</div>
-            <div style='font-size:11px;color:#7d8590;'>Questions</div>
-        </div>""", unsafe_allow_html=True)
-    with col2:
-        st.markdown(f"""
-        <div style='background:#21262d;border:1px solid #30363d;border-radius:6px;
-                    padding:10px;text-align:center;'>
-            <div style='font-size:22px;font-weight:700;color:#3fb950;'>{len(MODELS)}</div>
-            <div style='font-size:11px;color:#7d8590;'>Models</div>
-        </div>""", unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Session</div>', unsafe_allow_html=True)
+    n = len([m for m in st.session_state.messages if m["role"]=="user"])
+    st.markdown(f"""
+    <div style="padding:0 16px 12px;display:flex;gap:12px;">
+      <div style="background:#1e1e1e;border:1px solid #3c3c3c;border-radius:2px;
+                  padding:8px 14px;flex:1;text-align:center;">
+        <div style="font-size:20px;font-weight:700;color:#4fc1ff;">{n}</div>
+        <div style="font-size:11px;color:#666;">Prompts</div>
+      </div>
+      <div style="background:#1e1e1e;border:1px solid #3c3c3c;border-radius:2px;
+                  padding:8px 14px;flex:1;text-align:center;">
+        <div style="font-size:20px;font-weight:700;color:#4ec9b0;">{len(MODELS)}</div>
+        <div style="font-size:11px;color:#666;">Models</div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<hr style='margin:4px 0;'>", unsafe_allow_html=True)
 
-    if st.button("🗑️ Clear Chat", use_container_width=True):
+    # Actions
+    st.markdown('<div class="section-label">Actions</div>', unsafe_allow_html=True)
+    st.markdown('<div style="padding:4px 16px 12px;">', unsafe_allow_html=True)
+    if st.button("🗑  Clear Chat", use_container_width=True):
         st.session_state.messages = []
-        st.session_state.code_result = ""
+        st.session_state.code_out = ""
         st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    st.divider()
-    st.markdown(
-        '<div style="font-size:11px;color:#7d8590;text-align:center;">'
-        'Built by <strong style="color:#e6edf3;">NILESH PURI GOSWAMI</strong></div>',
-        unsafe_allow_html=True)
+    # Footer
+    st.markdown("""
+    <div style="position:absolute;bottom:16px;left:0;right:0;padding:0 16px;
+                border-top:1px solid #3c3c3c;padding-top:12px;">
+      <div style="font-size:11px;color:#555;">Built by</div>
+      <div style="font-size:12px;color:#858585;font-weight:500;">NILESH PURI GOSWAMI</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════════════════════ #
-#  MAIN — HEADER                                                               #
+#  MAIN                                                                        #
 # ════════════════════════════════════════════════════════════════════════════ #
+
+# Top bar
 st.markdown("""
-<div style='padding:20px 0 8px;'>
-    <h1 style='font-size:24px;font-weight:700;color:#e6edf3;margin:0;'>
-        👨‍💻 NILESH AI — Coding Assistant
-    </h1>
-    <p style='color:#7d8590;font-size:14px;margin:4px 0 0;'>
-        Your AI-powered coding companion — Debug · Review · Optimize · Learn
-    </p>
+<div style="background:#2d2d2d;border-bottom:1px solid #3c3c3c;
+            padding:10px 20px;display:flex;align-items:center;
+            justify-content:space-between;">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span style="font-size:13px;font-weight:600;color:#cccccc;">⚡ NILESH AI</span>
+    <span style="font-size:11px;color:#555;background:#1e1e1e;border:1px solid #3c3c3c;
+                 border-radius:2px;padding:2px 8px;">Coding Assistant</span>
+  </div>
+  <div style="font-size:11px;color:#555;">v2.0 · by Nilesh Puri Goswami</div>
 </div>
 """, unsafe_allow_html=True)
 
-# ── TABS ──────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3 = st.tabs(["💬  Ask AI", "💻  Code Tools", "📚  Learn & Explain"])
+tab1, tab2, tab3 = st.tabs(["  💬  Chat  ", "  💻  Code Tools  ", "  🔥  Quick Tools  "])
 
 # ════════════════════════════════════════════════════════════════════════════ #
-# TAB 1 — ASK AI (Chat)                                                        #
+# TAB 1 — CHAT                                                                 #
 # ════════════════════════════════════════════════════════════════════════════ #
 with tab1:
-    # Welcome screen
-    if not st.session_state.messages:
-        st.markdown("""
-        <div style='text-align:center;padding:40px 0 32px;'>
-            <div style='font-size:52px;'>👨‍💻</div>
-            <h2 style='font-size:26px;font-weight:700;color:#e6edf3;margin:12px 0 6px;'>
-                How can I help you code today?
-            </h2>
-            <p style='color:#7d8590;font-size:15px;'>
-                Ask me anything about coding — debugging, algorithms, architecture, best practices
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+    chat_area = st.container()
 
-        # Suggestion grid
-        cols = st.columns(3)
-        for i, (icon, title, sub) in enumerate(SUGGESTIONS):
-            with cols[i % 3]:
-                if st.button(f"{icon} **{title}**\n\n_{sub}_",
-                             use_container_width=True, key=f"sug_{i}"):
-                    q = f"{title} — {sub}"
-                    st.session_state.messages.append({"role": "user", "content": q})
-                    with st.spinner("Thinking..."):
-                        r = ask([{"role": "user", "content": q}], selected_model)
-                    st.session_state.messages.append({"role": "assistant", "content": r})
-                    st.rerun()
-    else:
-        render_chat()
+    with chat_area:
+        if not st.session_state.messages:
+            # Welcome
+            st.markdown("""
+            <div style="text-align:center;padding:52px 0 36px;">
+              <div style="font-size:44px;margin-bottom:14px;">⚡</div>
+              <h2 style="font-size:22px;font-weight:600;color:#cccccc;margin:0 0 6px;">
+                NILESH AI — Coding Assistant
+              </h2>
+              <p style="font-size:14px;color:#666;margin:0;">
+                Ask me to write, debug, review or explain any code
+              </p>
+            </div>
+            """, unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.divider()
+            # Suggestion cards
+            SUGS = [
+                ("🐛", "Debug my code",        "Find & fix all bugs"),
+                ("⚡", "Optimize this",         "Better performance"),
+                ("📝", "Explain line by line",  "For beginners"),
+                ("✅", "Write test cases",       "Full coverage"),
+                ("🔄", "Convert to Python",      "From any language"),
+                ("🔒", "Security audit",          "Find vulnerabilities"),
+            ]
+            rows = [SUGS[:3], SUGS[3:]]
+            for row in rows:
+                cols = st.columns(3)
+                for i, (icon, title, desc) in enumerate(row):
+                    with cols[i]:
+                        if st.button(
+                            f"{icon} {title}\n\n{desc}",
+                            use_container_width=True,
+                            key=f"s_{title}"
+                        ):
+                            q = f"{title} — {desc}"
+                            st.session_state.messages.append({"role":"user","content":q})
+                            with st.spinner(""):
+                                r = chat([{"role":"user","content":q}], m_key)
+                            st.session_state.messages.append({"role":"assistant","content":r})
+                            st.rerun()
+        else:
+            # Messages
+            for msg in st.session_state.messages:
+                if msg["role"] == "user":
+                    st.markdown(
+                        f'<div class="msg-user-wrap"><div class="msg-user">{msg["content"]}</div></div>',
+                        unsafe_allow_html=True)
+                else:
+                    st.markdown(
+                        f'<div class="msg-ai-wrap"><div class="msg-ai-icon">AI</div>'
+                        f'<div class="msg-ai-body">{msg["content"]}</div></div>',
+                        unsafe_allow_html=True)
 
-    # Input
-    with st.form("chat_form", clear_on_submit=True):
-        user_in = st.text_area(
-            "",
-            placeholder="Ask a coding question, paste an error, describe what you want to build...",
-            height=80,
-            label_visibility="collapsed",
-        )
-        c1, c2, c3 = st.columns([5, 1, 1])
-        with c2:
-            send = st.form_submit_button("Send ➤", type="primary", use_container_width=True)
-        with c3:
-            st.form_submit_button("Clear", use_container_width=True)
+    # Input bar
+    st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
+    st.markdown("<hr>", unsafe_allow_html=True)
 
-    if send and user_in.strip():
-        st.session_state.messages.append({"role": "user", "content": user_in.strip()})
-        api_msgs = [{"role": m["role"], "content": m["content"]}
-                    for m in st.session_state.messages
-                    if m["role"] in ("user", "assistant")]
-        with st.spinner("💭 Thinking..."):
-            resp = ask(api_msgs, selected_model)
-        st.session_state.messages.append({"role": "assistant", "content": resp})
+    with st.form("chat_f", clear_on_submit=True):
+        cols = st.columns([9, 1])
+        with cols[0]:
+            inp = st.text_area("",
+                placeholder="Ask a coding question, paste an error, or describe what you want to build...",
+                height=72, label_visibility="collapsed")
+        with cols[1]:
+            st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
+            go = st.form_submit_button("Send", type="primary", use_container_width=True)
+
+    if go and inp.strip():
+        st.session_state.messages.append({"role":"user","content":inp.strip()})
+        api_m = [{"role":m["role"],"content":m["content"]}
+                 for m in st.session_state.messages if m["role"] in ("user","assistant")]
+        with st.spinner(""):
+            r = chat(api_m, m_key)
+        st.session_state.messages.append({"role":"assistant","content":r})
         st.rerun()
 
 # ════════════════════════════════════════════════════════════════════════════ #
 # TAB 2 — CODE TOOLS                                                           #
 # ════════════════════════════════════════════════════════════════════════════ #
 with tab2:
-    st.markdown("### 💻 Code Tools")
-    st.caption("Paste your code and choose an action — review, debug, optimize, convert and more")
-    st.divider()
+    st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
+    left, right = st.columns([1, 1], gap="medium")
 
-    col_left, col_right = st.columns([1, 1], gap="large")
+    with left:
+        st.markdown("""
+        <div style="background:#2d2d2d;border:1px solid #3c3c3c;border-radius:4px 4px 0 0;
+                    padding:8px 12px;display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:#858585;text-transform:uppercase;
+                       letter-spacing:0.8px;font-weight:600;">Editor</span>
+        </div>
+        """, unsafe_allow_html=True)
 
-    with col_left:
-        st.markdown("#### 📝 Your Code")
+        c1, c2 = st.columns(2)
+        with c1:
+            src = st.selectbox("", LANGS, key="src", label_visibility="collapsed")
+        with c2:
+            action = st.selectbox("", [
+                "🔍 Review & Explain",
+                "🐛 Debug & Fix",
+                "⚡ Optimize",
+                "📝 Add Comments",
+                "🔄 Convert Language",
+                "✅ Write Tests",
+                "🔒 Security Audit",
+                "♻️ Refactor",
+                "📚 Explain to Beginner",
+            ], key="action", label_visibility="collapsed")
 
-        t1, t2 = st.columns(2)
-        with t1:
-            src_lang = st.selectbox("Language", LANGUAGES, key="src_lang")
-        with t2:
-            action = st.selectbox("Action", ACTIONS, key="action_sel")
-
-        # Target language for conversion
-        tgt_lang = None
+        tgt = None
         if action == "🔄 Convert Language":
-            tgt_lang = st.selectbox("Convert to", [l for l in LANGUAGES if l != src_lang], key="tgt_lang")
+            tgt = st.selectbox("Target", [l for l in LANGS if l != src], key="tgt")
 
-        code_in = st.text_area(
-            "",
-            height=340,
-            placeholder=f"# Paste your {src_lang} code here...",
+        code = st.text_area("",
+            height=320,
+            placeholder=f"# Paste your {src} code here...",
             label_visibility="collapsed",
-            key="code_in",
-        )
+            key="code_editor")
 
-        if st.button("🚀 Run Analysis", use_container_width=True, type="primary", key="run_btn"):
-            if not code_in.strip():
-                st.warning("⚠️ Please paste your code first!")
+        run = st.button("▶  Run Analysis", type="primary", use_container_width=True, key="run")
+
+        if run:
+            if not code.strip():
+                st.warning("Paste some code first.")
             else:
-                code_block = f"```{src_lang.lower()}\n{code_in}\n```"
-                prompt_map = {
-                    "🔍 Review & Explain":       f"Do a thorough code review of this {src_lang} code. Explain what it does, identify issues, and rate quality:\n\n{code_block}",
-                    "🐛 Debug & Fix Bugs":        f"Find ALL bugs and errors in this {src_lang} code. Show the fixed version with explanations:\n\n{code_block}",
-                    "⚡ Optimize Code":            f"Optimize this {src_lang} code for performance, readability, and best practices. Show before/after:\n\n{code_block}",
-                    "📝 Add Comments & Docs":     f"Add comprehensive comments and docstrings to this {src_lang} code:\n\n{code_block}",
-                    "🔄 Convert Language":        f"Convert this {src_lang} code to {tgt_lang}. Keep same logic, add comments:\n\n{code_block}",
-                    "✅ Generate Test Cases":      f"Write comprehensive unit tests for this {src_lang} code. Cover edge cases:\n\n{code_block}",
-                    "📚 Explain Line by Line":    f"Explain this {src_lang} code line by line for a beginner:\n\n{code_block}",
-                    "🔒 Security Audit":          f"Do a security audit of this {src_lang} code. Find vulnerabilities and suggest fixes:\n\n{code_block}",
-                    "♻️  Refactor Code":           f"Refactor this {src_lang} code using best practices and design patterns:\n\n{code_block}",
+                cb = f"```{src.lower()}\n{code}\n```"
+                p = {
+                    "🔍 Review & Explain":    f"Review this {src} code thoroughly — quality, logic, issues:\n\n{cb}",
+                    "🐛 Debug & Fix":         f"Find ALL bugs in this {src} code. Show fixed version:\n\n{cb}",
+                    "⚡ Optimize":             f"Optimize this {src} code for speed and readability:\n\n{cb}",
+                    "📝 Add Comments":         f"Add comprehensive comments/docstrings to this {src} code:\n\n{cb}",
+                    "🔄 Convert Language":     f"Convert this {src} code to {tgt}. Working code with comments:\n\n{cb}",
+                    "✅ Write Tests":           f"Write complete unit tests for this {src} code:\n\n{cb}",
+                    "🔒 Security Audit":        f"Security audit this {src} code. Find vulnerabilities, suggest fixes:\n\n{cb}",
+                    "♻️ Refactor":             f"Refactor this {src} code with best practices and clean code principles:\n\n{cb}",
+                    "📚 Explain to Beginner":  f"Explain this {src} code line by line for a complete beginner:\n\n{cb}",
                 }
-                with st.spinner(f"🔍 Running {action}..."):
-                    st.session_state.code_result = ask(
-                        [{"role": "user", "content": prompt_map[action]}],
-                        selected_model
-                    )
+                with st.spinner(f"Running {action}..."):
+                    st.session_state.code_out = chat([{"role":"user","content":p[action]}], m_key)
 
-    with col_right:
-        st.markdown("#### 🤖 AI Analysis")
-        if st.session_state.code_result:
-            result_container = st.container()
-            with result_container:
-                st.markdown(st.session_state.code_result)
+    with right:
+        st.markdown("""
+        <div style="background:#2d2d2d;border:1px solid #3c3c3c;border-radius:4px 4px 0 0;
+                    padding:8px 12px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:11px;color:#858585;text-transform:uppercase;
+                       letter-spacing:0.8px;font-weight:600;">Output</span>
+        </div>
+        """, unsafe_allow_html=True)
 
-            st.divider()
+        if st.session_state.code_out:
+            st.markdown(st.session_state.code_out)
+            st.markdown("<hr>", unsafe_allow_html=True)
             c1, c2 = st.columns(2)
             with c1:
-                st.markdown(
-                    dl_link(st.session_state.code_result, "analysis.txt", "Download Result"),
-                    unsafe_allow_html=True)
+                st.markdown(dl(st.session_state.code_out, "analysis.txt", "Download"), unsafe_allow_html=True)
             with c2:
-                if st.button("💬 Continue in Chat", key="to_chat"):
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": st.session_state.code_result
-                    })
-                    st.info("Result added to chat! Switch to 💬 Ask AI tab.")
+                if st.button("💬 Send to Chat", key="s2c", use_container_width=True):
+                    st.session_state.messages.append({"role":"assistant","content":st.session_state.code_out})
+                    st.info("Added to chat! Switch to 💬 tab.")
         else:
             st.markdown("""
-            <div style='background:#161b22;border:1px solid #21262d;border-radius:8px;
-                        padding:48px 24px;text-align:center;height:420px;
-                        display:flex;flex-direction:column;align-items:center;justify-content:center;'>
-                <div style='font-size:36px;margin-bottom:16px;'>💻</div>
-                <h3 style='color:#e6edf3;font-size:16px;margin:0 0 8px;'>Ready to analyze your code</h3>
-                <p style='color:#7d8590;font-size:13px;margin:0;'>
-                    Paste code on the left and choose an action
-                </p>
-                <br>
-                <div style='color:#7d8590;font-size:12px;text-align:left;'>
-                    <p>🔍 Review · 🐛 Debug · ⚡ Optimize</p>
-                    <p>🔄 Convert · ✅ Test · 🔒 Security</p>
-                </div>
+            <div style="border:1px solid #3c3c3c;border-top:none;border-radius:0 0 4px 4px;
+                        padding:60px 24px;text-align:center;min-height:420px;
+                        display:flex;flex-direction:column;align-items:center;justify-content:center;">
+              <div style="font-size:28px;margin-bottom:12px;">💻</div>
+              <div style="font-size:13px;color:#666;">Paste code + choose action</div>
+              <div style="font-size:12px;color:#555;margin-top:6px;">then click ▶ Run Analysis</div>
             </div>
             """, unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════════════════════ #
-# TAB 3 — LEARN & EXPLAIN                                                      #
+# TAB 3 — QUICK TOOLS                                                          #
 # ════════════════════════════════════════════════════════════════════════════ #
 with tab3:
-    st.markdown("### 📚 Learn & Explain")
-    st.caption("Learn concepts, get explanations, explore algorithms")
-    st.divider()
+    st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
 
-    learn_type = st.radio(
-        "What do you want?",
-        ["📖 Explain a Concept", "🔢 Algorithm Visualizer",
-         "⚖️  Compare Technologies", "📋 Cheat Sheet Generator"],
-        horizontal=True,
-        key="learn_type"
-    )
+    tool = st.radio("", [
+        "🚨 Error Explainer",
+        "📋 Code Generator",
+        "📖 Concept Explainer",
+        "🔀 Git Helper",
+    ], horizontal=True, label_visibility="collapsed", key="tool")
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<hr>", unsafe_allow_html=True)
 
-    if learn_type == "📖 Explain a Concept":
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            concept = st.text_input("", placeholder="e.g. recursion, binary search, REST APIs, async/await, Big O notation...",
-                                     label_visibility="collapsed", key="concept_in")
-        with col2:
-            level = st.selectbox("Level", ["Beginner", "Intermediate", "Advanced"], key="level_sel")
+    # ── Error Explainer ──────────────────────────────────────────────────────
+    if tool == "🚨 Error Explainer":
+        st.markdown("#### 🚨 Error Explainer")
+        st.caption("Paste any error/stack trace → get cause, explanation, and fix")
 
-        if st.button("📖 Explain", type="primary", key="explain_btn") and concept.strip():
-            prompt = f"Explain '{concept}' for a {level} programmer. Include: definition, how it works, real-world use case, and a code example in Python."
-            with st.spinner("📖 Generating explanation..."):
-                result = ask([{"role": "user", "content": prompt}], selected_model)
-            st.divider()
-            st.markdown(result)
+        err_lang = st.selectbox("Language", LANGS, key="err_lang")
+        err_in = st.text_area("", height=160,
+            placeholder="Paste your error or stack trace here...\n\nTypeError: unsupported operand type(s) for +: 'int' and 'str'",
+            label_visibility="collapsed", key="err_in")
 
-    elif learn_type == "🔢 Algorithm Visualizer":
-        algo = st.selectbox("Choose Algorithm", [
-            "Binary Search", "Bubble Sort", "Quick Sort", "Merge Sort",
-            "BFS (Breadth First Search)", "DFS (Depth First Search)",
-            "Dijkstra's Algorithm", "Dynamic Programming (Fibonacci)",
-        ], key="algo_sel")
-        algo_lang = st.selectbox("Language", ["Python", "JavaScript", "C++", "Java"], key="algo_lang")
+        if st.button("🔍 Explain & Fix", type="primary", key="err_btn") and err_in.strip():
+            p = (f"This is a {err_lang} error. Explain:\n"
+                 f"1. What caused this error\n"
+                 f"2. What it means\n"
+                 f"3. How to fix it (show code)\n"
+                 f"4. How to prevent it\n\n"
+                 f"Error:\n```\n{err_in}\n```")
+            with st.spinner("Analyzing error..."):
+                out = chat([{"role":"user","content":p}], m_key)
+            st.markdown("<hr>", unsafe_allow_html=True)
+            st.markdown(out)
 
-        if st.button("🔢 Show Algorithm", type="primary", key="algo_btn"):
-            prompt = (f"Explain {algo} with:\n"
-                      f"1. Step-by-step explanation\n"
-                      f"2. Time & Space complexity\n"
-                      f"3. Working code in {algo_lang} with comments\n"
-                      f"4. Example walkthrough")
-            with st.spinner("🔢 Preparing..."):
-                result = ask([{"role": "user", "content": prompt}], selected_model)
-            st.divider()
-            st.markdown(result)
+    # ── Code Generator ───────────────────────────────────────────────────────
+    elif tool == "📋 Code Generator":
+        st.markdown("#### 📋 Code Generator")
+        st.caption("Describe what you want → get clean, production-ready code")
 
-    elif learn_type == "⚖️  Compare Technologies":
-        col1, col2 = st.columns(2)
-        with col1:
-            tech1 = st.text_input("Technology 1", placeholder="e.g. React", key="t1")
-        with col2:
-            tech2 = st.text_input("Technology 2", placeholder="e.g. Vue", key="t2")
+        c1, c2 = st.columns(2)
+        with c1:
+            gen_lang = st.selectbox("Language", LANGS, key="gen_lang")
+        with c2:
+            gen_style = st.selectbox("Style", ["Clean & Commented", "Minimal", "With Error Handling", "With Tests"], key="gen_style")
 
-        if st.button("⚖️ Compare", type="primary", key="compare_btn") and tech1 and tech2:
-            prompt = (f"Compare {tech1} vs {tech2} for developers:\n"
-                      f"1. Key differences\n2. Pros & Cons of each\n"
-                      f"3. When to use which\n4. Performance\n5. Community & Jobs\n"
-                      f"6. Final recommendation")
-            with st.spinner("⚖️ Comparing..."):
-                result = ask([{"role": "user", "content": prompt}], selected_model)
-            st.divider()
-            st.markdown(result)
+        desc = st.text_area("", height=100,
+            placeholder="Describe what you want...\n\ne.g. A function that reads a CSV file, filters rows where age > 18, and returns a sorted list",
+            label_visibility="collapsed", key="gen_desc")
 
-    elif learn_type == "📋 Cheat Sheet Generator":
-        sheet_topic = st.text_input("", placeholder="e.g. Python list methods, Git commands, SQL queries, CSS flexbox...",
-                                     label_visibility="collapsed", key="sheet_in")
-        if st.button("📋 Generate Cheat Sheet", type="primary", key="sheet_btn") and sheet_topic.strip():
-            prompt = f"Create a comprehensive cheat sheet for '{sheet_topic}'. Format with clear sections, code examples, and tips. Make it practical and easy to reference."
-            with st.spinner("📋 Generating cheat sheet..."):
-                result = ask([{"role": "user", "content": prompt}], selected_model)
-            st.divider()
-            st.markdown(result)
-            st.markdown(dl_link(result, "cheatsheet.txt", "Download Cheat Sheet"), unsafe_allow_html=True)
+        if st.button("⚡ Generate Code", type="primary", key="gen_btn") and desc.strip():
+            p = (f"Write {gen_lang} code for: {desc}\n\n"
+                 f"Style: {gen_style}\n"
+                 f"Requirements: production-ready, {gen_style.lower()}, best practices")
+            with st.spinner("Generating..."):
+                out = chat([{"role":"user","content":p}], m_key)
+            st.markdown("<hr>", unsafe_allow_html=True)
+            st.markdown(out)
+            st.markdown(dl(out, "generated_code.txt", "Download Code"), unsafe_allow_html=True)
+
+    # ── Concept Explainer ────────────────────────────────────────────────────
+    elif tool == "📖 Concept Explainer":
+        st.markdown("#### 📖 Concept Explainer")
+        st.caption("Any programming concept → clear explanation with code examples")
+
+        c1, c2 = st.columns([3,1])
+        with c1:
+            concept = st.text_input("", placeholder="e.g. recursion, Big O notation, async/await, REST APIs, pointers...",
+                                     label_visibility="collapsed", key="concept")
+        with c2:
+            level = st.selectbox("", ["Beginner","Intermediate","Advanced"],
+                                  label_visibility="collapsed", key="level")
+
+        if st.button("📖 Explain", type="primary", key="con_btn") and concept.strip():
+            p = (f"Explain '{concept}' for a {level} programmer.\n"
+                 f"Include: definition, how it works, real-world analogy, "
+                 f"code example in Python, common mistakes, when to use it.")
+            with st.spinner("Explaining..."):
+                out = chat([{"role":"user","content":p}], m_key)
+            st.markdown("<hr>", unsafe_allow_html=True)
+            st.markdown(out)
+
+    # ── Git Helper ───────────────────────────────────────────────────────────
+    elif tool == "🔀 Git Helper":
+        st.markdown("#### 🔀 Git Helper")
+        st.caption("Git questions, commands, and workflows explained")
+
+        git_type = st.selectbox("What do you need?", [
+            "Explain a git command",
+            "Fix a git problem",
+            "Generate commit message",
+            "Git workflow for my project",
+            "Undo / revert changes",
+        ], key="git_type")
+
+        git_in = st.text_area("", height=100,
+            placeholder="Describe your git question or problem...",
+            label_visibility="collapsed", key="git_in")
+
+        if st.button("🔀 Get Git Help", type="primary", key="git_btn") and git_in.strip():
+            p = f"Git help — {git_type}:\n\n{git_in}\n\nProvide exact commands with explanation."
+            with st.spinner(""):
+                out = chat([{"role":"user","content":p}], m_key)
+            st.markdown("<hr>", unsafe_allow_html=True)
+            st.markdown(out)
