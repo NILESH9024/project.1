@@ -123,22 +123,25 @@ with st.sidebar:
     st.title("🤖 AI Assistant")
     st.markdown("---")
 
-    # API Key
+    # API Key — only show if not already loaded from secrets
     st.subheader("🔑 Groq API Key")
-    api_key_input = st.text_input(
-        "Enter API Key",
-        type="password",
-        value=st.session_state.api_key,
-        placeholder="gsk_...",
-        help="Get free key at console.groq.com",
-    )
-    if api_key_input and api_key_input != st.session_state.api_key:
-        st.session_state.api_key     = api_key_input
-        st.session_state.groq_client = Groq(api_key=api_key_input)
-        st.success("✅ API Key saved!")
+    if st.session_state.api_key:
+        st.success("✅ API Key loaded")
+    else:
+        api_key_input = st.text_input(
+            "Enter API Key",
+            type="password",
+            value=st.session_state.api_key,
+            placeholder="gsk_...",
+            help="Get free key at console.groq.com",
+        )
+        if api_key_input and api_key_input != st.session_state.api_key:
+            st.session_state.api_key     = api_key_input
+            st.session_state.groq_client = Groq(api_key=api_key_input)
+            st.success("✅ API Key saved!")
 
-    if not st.session_state.api_key:
-        st.warning("⚠️ Get free key at [console.groq.com](https://console.groq.com)")
+        if not st.session_state.api_key:
+            st.warning("⚠️ Get free key at [console.groq.com](https://console.groq.com)")
 
     st.markdown("---")
 
